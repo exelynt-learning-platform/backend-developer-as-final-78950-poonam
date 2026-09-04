@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ReservationController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">ResourceBookingSystem</a> &gt; <a href="index.source.html" class="el_package">com.example.booking.controller</a> &gt; <span class="el_source">ReservationController.java</span></div><h1>ReservationController.java</h1><pre class="source lang-java linenums">package com.example.booking.controller;
+
+import com.example.booking.dto.request.ReservationRequest;
+import com.example.booking.dto.request.ReservationStatusUpdateRequest;
+import com.example.booking.dto.response.ApiResponse;
+import com.example.booking.dto.response.PagedResponse;
+import com.example.booking.dto.response.ReservationResponse;
+import com.example.booking.entity.ReservationStatus;
+import com.example.booking.entity.Role;
+import com.example.booking.security.UserDetailsImpl;
+import com.example.booking.service.ReservationService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.*;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+
+@RestController
+@RequestMapping({&quot;/api/reservations&quot;, &quot;/reservations&quot;})
+@RequiredArgsConstructor
+@Tag(name = &quot;Reservations&quot;, description = &quot;Endpoints for creating, filtering, and managing resource reservations&quot;)
+@SecurityRequirement(name = &quot;Bearer Authentication&quot;)
+public class ReservationController {
+
+    private final ReservationService reservationService;
+
+    @PostMapping
+    @Operation(
+            summary = &quot;Create a reservation&quot;,
+            description = &quot;Creates a new reservation. USER identity is automatically extracted from JWT, NOT from request body.&quot;
+    )
+    public ResponseEntity&lt;ApiResponse&lt;ReservationResponse&gt;&gt; createReservation(
+            @Valid @RequestBody ReservationRequest request,
+            @AuthenticationPrincipal UserDetailsImpl currentUser
+    ) {
+<span class="fc" id="L48">        ReservationResponse response = reservationService.createReservation(request, currentUser.getId());</span>
+<span class="fc" id="L49">        return new ResponseEntity&lt;&gt;(ApiResponse.ok(&quot;Reservation created successfully&quot;, response), HttpStatus.CREATED);</span>
+    }
+
+    @GetMapping
+    @Operation(
+            summary = &quot;Get reservations with filtering and pagination&quot;,
+            description = &quot;ADMIN can view all reservations or filter by any user. USER can only view their own reservations. Supports filtering by status, minPrice, maxPrice, pagination, and sorting.&quot;
+    )
+    public ResponseEntity&lt;ApiResponse&lt;PagedResponse&lt;ReservationResponse&gt;&gt;&gt; getAllReservations(
+            @Parameter(description = &quot;Filter by status (PENDING, CONFIRMED, CANCELLED)&quot;)
+            @RequestParam(required = false) ReservationStatus status,
+            @Parameter(description = &quot;Filter by minimum price (decimal)&quot;)
+            @RequestParam(required = false) BigDecimal minPrice,
+            @Parameter(description = &quot;Filter by maximum price (decimal)&quot;)
+            @RequestParam(required = false) BigDecimal maxPrice,
+            @Parameter(description = &quot;Filter by resource ID&quot;)
+            @RequestParam(required = false) Long resourceId,
+            @Parameter(description = &quot;Filter by user ID (ADMIN only)&quot;)
+            @RequestParam(required = false) Long userId,
+            @Parameter(description = &quot;Filter reservations starting after (ISO DateTime)&quot;)
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startAfter,
+            @Parameter(description = &quot;Filter reservations ending before (ISO DateTime)&quot;)
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endBefore,
+            @Parameter(description = &quot;Page number (0-based)&quot;)
+            @RequestParam(defaultValue = &quot;0&quot;) int page,
+            @Parameter(description = &quot;Page size&quot;)
+            @RequestParam(defaultValue = &quot;10&quot;) int size,
+            @Parameter(description = &quot;Sort by property (e.g. createdAt, totalPrice, startTime)&quot;)
+            @RequestParam(defaultValue = &quot;createdAt&quot;) String sortBy,
+            @Parameter(description = &quot;Sort direction (asc / desc)&quot;)
+            @RequestParam(defaultValue = &quot;desc&quot;) String sortDirection,
+            @AuthenticationPrincipal UserDetailsImpl currentUser
+    ) {
+<span class="fc bfc" id="L82" title="All 2 branches covered.">        boolean isAdmin = currentUser.getRole() == Role.ROLE_ADMIN;</span>
+
+<span class="pc bpc" id="L84" title="1 of 2 branches missed.">        Sort sort = sortDirection.equalsIgnoreCase(&quot;asc&quot;) ? Sort.by(sortBy).ascending() : Sort.by(sortBy).descending();</span>
+<span class="fc" id="L85">        Pageable pageable = PageRequest.of(page, size, sort);</span>
+
+<span class="fc" id="L87">        PagedResponse&lt;ReservationResponse&gt; response = reservationService.getAllReservations(</span>
+<span class="fc" id="L88">                currentUser.getId(),</span>
+                isAdmin,
+                status,
+                minPrice,
+                maxPrice,
+                resourceId,
+                userId,
+                startAfter,
+                endBefore,
+                pageable
+        );
+
+<span class="fc" id="L100">        return ResponseEntity.ok(ApiResponse.ok(&quot;Reservations retrieved successfully&quot;, response));</span>
+    }
+
+    @GetMapping(&quot;/{id}&quot;)
+    @Operation(
+            summary = &quot;Get reservation by ID&quot;,
+            description = &quot;ADMIN can view any reservation. USER can view only their own reservation.&quot;
+    )
+    public ResponseEntity&lt;ApiResponse&lt;ReservationResponse&gt;&gt; getReservationById(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserDetailsImpl currentUser
+    ) {
+<span class="nc bnc" id="L112" title="All 2 branches missed.">        boolean isAdmin = currentUser.getRole() == Role.ROLE_ADMIN;</span>
+<span class="nc" id="L113">        ReservationResponse response = reservationService.getReservationById(id, currentUser.getId(), isAdmin);</span>
+<span class="nc" id="L114">        return ResponseEntity.ok(ApiResponse.ok(&quot;Reservation details retrieved&quot;, response));</span>
+    }
+
+    @PutMapping(&quot;/{id}/status&quot;)
+    @Operation(
+            summary = &quot;Update reservation status&quot;,
+            description = &quot;ADMIN can change status to PENDING, CONFIRMED, or CANCELLED. USER can only cancel (CANCELLED) their own reservation.&quot;
+    )
+    public ResponseEntity&lt;ApiResponse&lt;ReservationResponse&gt;&gt; updateReservationStatus(
+            @PathVariable Long id,
+            @Valid @RequestBody ReservationStatusUpdateRequest request,
+            @AuthenticationPrincipal UserDetailsImpl currentUser
+    ) {
+<span class="pc bpc" id="L127" title="1 of 2 branches missed.">        boolean isAdmin = currentUser.getRole() == Role.ROLE_ADMIN;</span>
+<span class="fc" id="L128">        ReservationResponse response = reservationService.updateReservationStatus(id, request, currentUser.getId(), isAdmin);</span>
+<span class="fc" id="L129">        return ResponseEntity.ok(ApiResponse.ok(&quot;Reservation status updated successfully&quot;, response));</span>
+    }
+
+    @DeleteMapping(&quot;/{id}&quot;)
+    @Operation(
+            summary = &quot;Cancel or delete a reservation&quot;,
+            description = &quot;ADMIN deletes reservation from database. USER cancels their own reservation.&quot;
+    )
+    public ResponseEntity&lt;ApiResponse&lt;Void&gt;&gt; deleteReservation(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserDetailsImpl currentUser
+    ) {
+<span class="nc bnc" id="L141" title="All 2 branches missed.">        boolean isAdmin = currentUser.getRole() == Role.ROLE_ADMIN;</span>
+<span class="nc" id="L142">        reservationService.deleteReservation(id, currentUser.getId(), isAdmin);</span>
+<span class="nc bnc" id="L143" title="All 2 branches missed.">        return ResponseEntity.ok(ApiResponse.message(isAdmin ? &quot;Reservation deleted successfully&quot; : &quot;Reservation cancelled successfully&quot;));</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

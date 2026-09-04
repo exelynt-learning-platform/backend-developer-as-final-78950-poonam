@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>GlobalExceptionHandler.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">ResourceBookingSystem</a> &gt; <a href="index.source.html" class="el_package">com.example.booking.exception</a> &gt; <span class="el_source">GlobalExceptionHandler.java</span></div><h1>GlobalExceptionHandler.java</h1><pre class="source lang-java linenums">package com.example.booking.exception;
+
+import com.example.booking.dto.response.ErrorResponse;
+import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.core.AuthenticationException;
+import org.springframework.validation.FieldError;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+
+import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.Map;
+
+@RestControllerAdvice
+<span class="fc" id="L21">public class GlobalExceptionHandler {</span>
+
+    @ExceptionHandler(ResourceNotFoundException.class)
+    public ResponseEntity&lt;ErrorResponse&gt; handleResourceNotFoundException(ResourceNotFoundException ex, HttpServletRequest request) {
+<span class="nc" id="L25">        ErrorResponse errorResponse = ErrorResponse.builder()</span>
+<span class="nc" id="L26">                .status(HttpStatus.NOT_FOUND.value())</span>
+<span class="nc" id="L27">                .error(HttpStatus.NOT_FOUND.getReasonPhrase())</span>
+<span class="nc" id="L28">                .message(ex.getMessage())</span>
+<span class="nc" id="L29">                .path(request.getRequestURI())</span>
+<span class="nc" id="L30">                .timestamp(LocalDateTime.now())</span>
+<span class="nc" id="L31">                .build();</span>
+<span class="nc" id="L32">        return new ResponseEntity&lt;&gt;(errorResponse, HttpStatus.NOT_FOUND);</span>
+    }
+
+    @ExceptionHandler(BadRequestException.class)
+    public ResponseEntity&lt;ErrorResponse&gt; handleBadRequestException(BadRequestException ex, HttpServletRequest request) {
+<span class="nc" id="L37">        ErrorResponse errorResponse = ErrorResponse.builder()</span>
+<span class="nc" id="L38">                .status(HttpStatus.BAD_REQUEST.value())</span>
+<span class="nc" id="L39">                .error(HttpStatus.BAD_REQUEST.getReasonPhrase())</span>
+<span class="nc" id="L40">                .message(ex.getMessage())</span>
+<span class="nc" id="L41">                .path(request.getRequestURI())</span>
+<span class="nc" id="L42">                .timestamp(LocalDateTime.now())</span>
+<span class="nc" id="L43">                .build();</span>
+<span class="nc" id="L44">        return new ResponseEntity&lt;&gt;(errorResponse, HttpStatus.BAD_REQUEST);</span>
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity&lt;ErrorResponse&gt; handleValidationExceptions(MethodArgumentNotValidException ex, HttpServletRequest request) {
+<span class="nc" id="L49">        Map&lt;String, String&gt; errors = new HashMap&lt;&gt;();</span>
+<span class="nc bnc" id="L50" title="All 2 branches missed.">        for (FieldError error : ex.getBindingResult().getFieldErrors()) {</span>
+<span class="nc" id="L51">            errors.put(error.getField(), error.getDefaultMessage());</span>
+<span class="nc" id="L52">        }</span>
+
+<span class="nc" id="L54">        ErrorResponse errorResponse = ErrorResponse.builder()</span>
+<span class="nc" id="L55">                .status(HttpStatus.BAD_REQUEST.value())</span>
+<span class="nc" id="L56">                .error(HttpStatus.BAD_REQUEST.getReasonPhrase())</span>
+<span class="nc" id="L57">                .message(&quot;Validation failed for input arguments&quot;)</span>
+<span class="nc" id="L58">                .path(request.getRequestURI())</span>
+<span class="nc" id="L59">                .validationErrors(errors)</span>
+<span class="nc" id="L60">                .timestamp(LocalDateTime.now())</span>
+<span class="nc" id="L61">                .build();</span>
+<span class="nc" id="L62">        return new ResponseEntity&lt;&gt;(errorResponse, HttpStatus.BAD_REQUEST);</span>
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity&lt;ErrorResponse&gt; handleTypeMismatchException(MethodArgumentTypeMismatchException ex, HttpServletRequest request) {
+<span class="nc" id="L67">        String message = String.format(&quot;Parameter '%s' invalid value '%s'. Expected type: %s&quot;,</span>
+<span class="nc bnc" id="L68" title="All 2 branches missed.">                ex.getName(), ex.getValue(), ex.getRequiredType() != null ? ex.getRequiredType().getSimpleName() : &quot;unknown&quot;);</span>
+
+<span class="nc" id="L70">        ErrorResponse errorResponse = ErrorResponse.builder()</span>
+<span class="nc" id="L71">                .status(HttpStatus.BAD_REQUEST.value())</span>
+<span class="nc" id="L72">                .error(HttpStatus.BAD_REQUEST.getReasonPhrase())</span>
+<span class="nc" id="L73">                .message(message)</span>
+<span class="nc" id="L74">                .path(request.getRequestURI())</span>
+<span class="nc" id="L75">                .timestamp(LocalDateTime.now())</span>
+<span class="nc" id="L76">                .build();</span>
+<span class="nc" id="L77">        return new ResponseEntity&lt;&gt;(errorResponse, HttpStatus.BAD_REQUEST);</span>
+    }
+
+    @ExceptionHandler({UnauthorizedException.class, BadCredentialsException.class, AuthenticationException.class})
+    public ResponseEntity&lt;ErrorResponse&gt; handleAuthenticationException(Exception ex, HttpServletRequest request) {
+<span class="fc" id="L82">        ErrorResponse errorResponse = ErrorResponse.builder()</span>
+<span class="fc" id="L83">                .status(HttpStatus.UNAUTHORIZED.value())</span>
+<span class="fc" id="L84">                .error(HttpStatus.UNAUTHORIZED.getReasonPhrase())</span>
+<span class="pc bpc" id="L85" title="1 of 2 branches missed.">                .message(ex.getMessage() != null ? ex.getMessage() : &quot;Invalid credentials or unauthorized access&quot;)</span>
+<span class="fc" id="L86">                .path(request.getRequestURI())</span>
+<span class="fc" id="L87">                .timestamp(LocalDateTime.now())</span>
+<span class="fc" id="L88">                .build();</span>
+<span class="fc" id="L89">        return new ResponseEntity&lt;&gt;(errorResponse, HttpStatus.UNAUTHORIZED);</span>
+    }
+
+    @ExceptionHandler({AccessDeniedException.class, AccessDeniedCustomException.class})
+    public ResponseEntity&lt;ErrorResponse&gt; handleAccessDeniedException(Exception ex, HttpServletRequest request) {
+<span class="nc" id="L94">        ErrorResponse errorResponse = ErrorResponse.builder()</span>
+<span class="nc" id="L95">                .status(HttpStatus.FORBIDDEN.value())</span>
+<span class="nc" id="L96">                .error(HttpStatus.FORBIDDEN.getReasonPhrase())</span>
+<span class="nc bnc" id="L97" title="All 2 branches missed.">                .message(ex.getMessage() != null ? ex.getMessage() : &quot;Access denied: You do not have permission to perform this action&quot;)</span>
+<span class="nc" id="L98">                .path(request.getRequestURI())</span>
+<span class="nc" id="L99">                .timestamp(LocalDateTime.now())</span>
+<span class="nc" id="L100">                .build();</span>
+<span class="nc" id="L101">        return new ResponseEntity&lt;&gt;(errorResponse, HttpStatus.FORBIDDEN);</span>
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity&lt;ErrorResponse&gt; handleGlobalException(Exception ex, HttpServletRequest request) {
+<span class="nc" id="L106">        ErrorResponse errorResponse = ErrorResponse.builder()</span>
+<span class="nc" id="L107">                .status(HttpStatus.INTERNAL_SERVER_ERROR.value())</span>
+<span class="nc" id="L108">                .error(HttpStatus.INTERNAL_SERVER_ERROR.getReasonPhrase())</span>
+<span class="nc bnc" id="L109" title="All 2 branches missed.">                .message(ex.getMessage() != null ? ex.getMessage() : &quot;An unexpected internal server error occurred&quot;)</span>
+<span class="nc" id="L110">                .path(request.getRequestURI())</span>
+<span class="nc" id="L111">                .timestamp(LocalDateTime.now())</span>
+<span class="nc" id="L112">                .build();</span>
+<span class="nc" id="L113">        return new ResponseEntity&lt;&gt;(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

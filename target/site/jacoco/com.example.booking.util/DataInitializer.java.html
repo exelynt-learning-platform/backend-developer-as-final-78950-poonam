@@ -1,0 +1,194 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DataInitializer.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">ResourceBookingSystem</a> &gt; <a href="index.source.html" class="el_package">com.example.booking.util</a> &gt; <span class="el_source">DataInitializer.java</span></div><h1>DataInitializer.java</h1><pre class="source lang-java linenums">package com.example.booking.util;
+
+import com.example.booking.entity.Reservation;
+import com.example.booking.entity.ReservationStatus;
+import com.example.booking.entity.Resource;
+import com.example.booking.entity.Role;
+import com.example.booking.entity.User;
+import com.example.booking.repository.ReservationRepository;
+import com.example.booking.repository.ResourceRepository;
+import com.example.booking.repository.UserRepository;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.CommandLineRunner;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Component;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+
+@Component
+@RequiredArgsConstructor
+<span class="fc" id="L22">@Slf4j</span>
+public class DataInitializer implements CommandLineRunner {
+
+    private final UserRepository userRepository;
+    private final ResourceRepository resourceRepository;
+    private final ReservationRepository reservationRepository;
+    private final PasswordEncoder passwordEncoder;
+
+    @Override
+    public void run(String... args) {
+<span class="fc" id="L32">        seedUsers();</span>
+<span class="fc" id="L33">        seedResources();</span>
+<span class="fc" id="L34">        seedReservations();</span>
+<span class="fc" id="L35">    }</span>
+
+    private void seedUsers() {
+<span class="fc" id="L38">        log.info(&quot;Ensuring users are initialized for Poonam Memane's Resource Booking System...&quot;);</span>
+
+        // Admin User - Poonam Memane
+<span class="fc" id="L41">        userRepository.findByUsername(&quot;poonam&quot;).ifPresentOrElse(</span>
+                existing -&gt; {
+<span class="nc" id="L43">                    existing.setPassword(passwordEncoder.encode(&quot;poonam123&quot;));</span>
+<span class="nc" id="L44">                    existing.setFullName(&quot;Poonam Memane&quot;);</span>
+<span class="nc" id="L45">                    existing.setRole(Role.ROLE_ADMIN);</span>
+<span class="nc" id="L46">                    existing.setEmail(&quot;poonam.memane@example.com&quot;);</span>
+<span class="nc" id="L47">                    userRepository.save(existing);</span>
+<span class="nc" id="L48">                },</span>
+                () -&gt; {
+<span class="fc" id="L50">                    User admin = User.builder()</span>
+<span class="fc" id="L51">                            .username(&quot;poonam&quot;)</span>
+<span class="fc" id="L52">                            .password(passwordEncoder.encode(&quot;poonam123&quot;))</span>
+<span class="fc" id="L53">                            .email(&quot;poonam.memane@example.com&quot;)</span>
+<span class="fc" id="L54">                            .fullName(&quot;Poonam Memane&quot;)</span>
+<span class="fc" id="L55">                            .role(Role.ROLE_ADMIN)</span>
+<span class="fc" id="L56">                            .build();</span>
+<span class="fc" id="L57">                    userRepository.save(admin);</span>
+<span class="fc" id="L58">                }</span>
+        );
+
+        // Legacy Admin User alias
+<span class="fc" id="L62">        userRepository.findByUsername(&quot;admin&quot;).ifPresentOrElse(</span>
+                existing -&gt; {
+<span class="nc" id="L64">                    existing.setPassword(passwordEncoder.encode(&quot;admin123&quot;));</span>
+<span class="nc" id="L65">                    existing.setFullName(&quot;Poonam Memane (Admin)&quot;);</span>
+<span class="nc" id="L66">                    existing.setRole(Role.ROLE_ADMIN);</span>
+<span class="nc" id="L67">                    userRepository.save(existing);</span>
+<span class="nc" id="L68">                },</span>
+                () -&gt; {
+<span class="fc" id="L70">                    User adminAlias = User.builder()</span>
+<span class="fc" id="L71">                            .username(&quot;admin&quot;)</span>
+<span class="fc" id="L72">                            .password(passwordEncoder.encode(&quot;admin123&quot;))</span>
+<span class="fc" id="L73">                            .email(&quot;admin@example.com&quot;)</span>
+<span class="fc" id="L74">                            .fullName(&quot;Poonam Memane (Admin)&quot;)</span>
+<span class="fc" id="L75">                            .role(Role.ROLE_ADMIN)</span>
+<span class="fc" id="L76">                            .build();</span>
+<span class="fc" id="L77">                    userRepository.save(adminAlias);</span>
+<span class="fc" id="L78">                }</span>
+        );
+
+        // Standard User
+<span class="fc" id="L82">        userRepository.findByUsername(&quot;user&quot;).ifPresentOrElse(</span>
+                existing -&gt; {
+<span class="nc" id="L84">                    existing.setPassword(passwordEncoder.encode(&quot;user123&quot;));</span>
+<span class="nc" id="L85">                    existing.setFullName(&quot;Poonam Memane&quot;);</span>
+<span class="nc" id="L86">                    existing.setRole(Role.ROLE_USER);</span>
+<span class="nc" id="L87">                    userRepository.save(existing);</span>
+<span class="nc" id="L88">                },</span>
+                () -&gt; {
+<span class="fc" id="L90">                    User user1 = User.builder()</span>
+<span class="fc" id="L91">                            .username(&quot;user&quot;)</span>
+<span class="fc" id="L92">                            .password(passwordEncoder.encode(&quot;user123&quot;))</span>
+<span class="fc" id="L93">                            .email(&quot;poonam.user@example.com&quot;)</span>
+<span class="fc" id="L94">                            .fullName(&quot;Poonam Memane&quot;)</span>
+<span class="fc" id="L95">                            .role(Role.ROLE_USER)</span>
+<span class="fc" id="L96">                            .build();</span>
+<span class="fc" id="L97">                    userRepository.save(user1);</span>
+<span class="fc" id="L98">                }</span>
+        );
+
+<span class="fc" id="L101">        log.info(&quot;Users ready: poonam/poonam123 [ADMIN], admin/admin123 [ADMIN], user/user123 [USER].&quot;);</span>
+<span class="fc" id="L102">    }</span>
+
+    private void seedResources() {
+<span class="pc bpc" id="L105" title="1 of 2 branches missed.">        if (resourceRepository.count() == 0) {</span>
+<span class="fc" id="L106">            log.info(&quot;Seeding initial resources with INR pricing...&quot;);</span>
+
+<span class="fc" id="L108">            Resource room1 = Resource.builder()</span>
+<span class="fc" id="L109">                    .name(&quot;Executive Conference Room Apollo&quot;)</span>
+<span class="fc" id="L110">                    .type(&quot;ROOM&quot;)</span>
+<span class="fc" id="L111">                    .description(&quot;Executive boardroom with 4K UHD conferencing, digital smart board, and 16 executive ergonomic leather chairs.&quot;)</span>
+<span class="fc" id="L112">                    .location(&quot;Tower A, 4th Floor, Tech Park&quot;)</span>
+<span class="fc" id="L113">                    .capacity(16)</span>
+<span class="fc" id="L114">                    .basePrice(new BigDecimal(&quot;2500.00&quot;))</span>
+<span class="fc" id="L115">                    .isAvailable(true)</span>
+<span class="fc" id="L116">                    .build();</span>
+<span class="fc" id="L117">            resourceRepository.save(room1);</span>
+
+<span class="fc" id="L119">            Resource room2 = Resource.builder()</span>
+<span class="fc" id="L120">                    .name(&quot;Innovation Design Studio&quot;)</span>
+<span class="fc" id="L121">                    .type(&quot;ROOM&quot;)</span>
+<span class="fc" id="L122">                    .description(&quot;Collaborative design workshop space with dual smart displays, acoustic baffling, and modular team tables.&quot;)</span>
+<span class="fc" id="L123">                    .location(&quot;Innovation Hub, Floor 2&quot;)</span>
+<span class="fc" id="L124">                    .capacity(25)</span>
+<span class="fc" id="L125">                    .basePrice(new BigDecimal(&quot;4000.00&quot;))</span>
+<span class="fc" id="L126">                    .isAvailable(true)</span>
+<span class="fc" id="L127">                    .build();</span>
+<span class="fc" id="L128">            resourceRepository.save(room2);</span>
+
+<span class="fc" id="L130">            Resource equipment1 = Resource.builder()</span>
+<span class="fc" id="L131">                    .name(&quot;Sony 4K Pro Video Production Kit&quot;)</span>
+<span class="fc" id="L132">                    .type(&quot;EQUIPMENT&quot;)</span>
+<span class="fc" id="L133">                    .description(&quot;Full 4K cinema camera package with wireless lavalier mics, teleprompter, and studio LED lighting panels.&quot;)</span>
+<span class="fc" id="L134">                    .location(&quot;Media Center, Tech Bay 3&quot;)</span>
+<span class="fc" id="L135">                    .capacity(1)</span>
+<span class="fc" id="L136">                    .basePrice(new BigDecimal(&quot;1200.00&quot;))</span>
+<span class="fc" id="L137">                    .isAvailable(true)</span>
+<span class="fc" id="L138">                    .build();</span>
+<span class="fc" id="L139">            resourceRepository.save(equipment1);</span>
+
+<span class="fc" id="L141">            Resource vehicle1 = Resource.builder()</span>
+<span class="fc" id="L142">                    .name(&quot;Executive VIP Transport Shuttle&quot;)</span>
+<span class="fc" id="L143">                    .type(&quot;VEHICLE&quot;)</span>
+<span class="fc" id="L144">                    .description(&quot;Premium 8-passenger all-electric vehicle with high-speed Wi-Fi, executive workspace seating, and GPS tracking.&quot;)</span>
+<span class="fc" id="L145">                    .location(&quot;VIP Fleet Bay 1&quot;)</span>
+<span class="fc" id="L146">                    .capacity(8)</span>
+<span class="fc" id="L147">                    .basePrice(new BigDecimal(&quot;3500.00&quot;))</span>
+<span class="fc" id="L148">                    .isAvailable(true)</span>
+<span class="fc" id="L149">                    .build();</span>
+<span class="fc" id="L150">            resourceRepository.save(vehicle1);</span>
+
+<span class="fc" id="L152">            log.info(&quot;Seed resources created with INR prices (₹2500/hr, ₹4000/hr, ₹1200/hr, ₹3500/hr).&quot;);</span>
+        }
+<span class="fc" id="L154">    }</span>
+
+    private void seedReservations() {
+<span class="pc bpc" id="L157" title="1 of 2 branches missed.">        if (reservationRepository.count() == 0) {</span>
+<span class="fc" id="L158">            log.info(&quot;Seeding initial sample reservations for Poonam Memane...&quot;);</span>
+
+<span class="fc" id="L160">            userRepository.findByUsername(&quot;poonam&quot;).ifPresent(poonam -&gt; {</span>
+<span class="fc" id="L161">                resourceRepository.findAll().stream().findFirst().ifPresent(resource -&gt; {</span>
+<span class="fc" id="L162">                    Reservation reservation1 = Reservation.builder()</span>
+<span class="fc" id="L163">                            .user(poonam)</span>
+<span class="fc" id="L164">                            .resource(resource)</span>
+<span class="fc" id="L165">                            .startTime(LocalDateTime.now().plusDays(1).withHour(10).withMinute(0).withSecond(0))</span>
+<span class="fc" id="L166">                            .endTime(LocalDateTime.now().plusDays(1).withHour(12).withMinute(0).withSecond(0))</span>
+<span class="fc" id="L167">                            .status(ReservationStatus.CONFIRMED)</span>
+<span class="fc" id="L168">                            .totalPrice(new BigDecimal(&quot;5000.00&quot;))</span>
+<span class="fc" id="L169">                            .notes(&quot;Poonam Memane - Quarterly Technical Strategy &amp; Architecture Review&quot;)</span>
+<span class="fc" id="L170">                            .build();</span>
+<span class="fc" id="L171">                    reservationRepository.save(reservation1);</span>
+<span class="fc" id="L172">                });</span>
+<span class="fc" id="L173">            });</span>
+
+<span class="fc" id="L175">            userRepository.findByUsername(&quot;user&quot;).ifPresent(user -&gt; {</span>
+<span class="fc" id="L176">                resourceRepository.findAll().stream().skip(1).findFirst().ifPresent(resource -&gt; {</span>
+<span class="fc" id="L177">                    Reservation reservation2 = Reservation.builder()</span>
+<span class="fc" id="L178">                            .user(user)</span>
+<span class="fc" id="L179">                            .resource(resource)</span>
+<span class="fc" id="L180">                            .startTime(LocalDateTime.now().plusDays(2).withHour(14).withMinute(0).withSecond(0))</span>
+<span class="fc" id="L181">                            .endTime(LocalDateTime.now().plusDays(2).withHour(16).withMinute(0).withSecond(0))</span>
+<span class="fc" id="L182">                            .status(ReservationStatus.PENDING)</span>
+<span class="fc" id="L183">                            .totalPrice(new BigDecimal(&quot;8000.00&quot;))</span>
+<span class="fc" id="L184">                            .notes(&quot;Poonam Memane - Sprint Planning &amp; Resource Allocation&quot;)</span>
+<span class="fc" id="L185">                            .build();</span>
+<span class="fc" id="L186">                    reservationRepository.save(reservation2);</span>
+<span class="fc" id="L187">                });</span>
+<span class="fc" id="L188">            });</span>
+
+<span class="fc" id="L190">            log.info(&quot;Seed reservations created successfully.&quot;);</span>
+        }
+<span class="fc" id="L192">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

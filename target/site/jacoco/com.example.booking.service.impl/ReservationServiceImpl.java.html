@@ -1,0 +1,218 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ReservationServiceImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">ResourceBookingSystem</a> &gt; <a href="index.source.html" class="el_package">com.example.booking.service.impl</a> &gt; <span class="el_source">ReservationServiceImpl.java</span></div><h1>ReservationServiceImpl.java</h1><pre class="source lang-java linenums">package com.example.booking.service.impl;
+
+import com.example.booking.dto.request.ReservationRequest;
+import com.example.booking.dto.request.ReservationStatusUpdateRequest;
+import com.example.booking.dto.response.PagedResponse;
+import com.example.booking.dto.response.ReservationResponse;
+import com.example.booking.entity.Reservation;
+import com.example.booking.entity.ReservationStatus;
+import com.example.booking.entity.Resource;
+import com.example.booking.entity.User;
+import com.example.booking.exception.AccessDeniedCustomException;
+import com.example.booking.exception.BadRequestException;
+import com.example.booking.exception.ResourceNotFoundException;
+import com.example.booking.repository.ReservationRepository;
+import com.example.booking.repository.ReservationSpecification;
+import com.example.booking.repository.ResourceRepository;
+import com.example.booking.repository.UserRepository;
+import com.example.booking.service.ReservationService;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.Duration;
+import java.time.LocalDateTime;
+import java.util.List;
+
+@Service
+@RequiredArgsConstructor
+<span class="fc" id="L35">@Slf4j</span>
+public class ReservationServiceImpl implements ReservationService {
+
+    private final ReservationRepository reservationRepository;
+    private final ResourceRepository resourceRepository;
+    private final UserRepository userRepository;
+
+    @Override
+    @Transactional
+    public ReservationResponse createReservation(ReservationRequest request, Long currentUserId) {
+        // Enforce user identity from JWT
+<span class="fc" id="L46">        User user = userRepository.findById(currentUserId)</span>
+<span class="pc" id="L47">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;User&quot;, &quot;id&quot;, currentUserId));</span>
+
+<span class="fc" id="L49">        Resource resource = resourceRepository.findById(request.getResourceId())</span>
+<span class="pc" id="L50">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Resource&quot;, &quot;id&quot;, request.getResourceId()));</span>
+
+<span class="pc bpc" id="L52" title="1 of 2 branches missed.">        if (Boolean.FALSE.equals(resource.getIsAvailable())) {</span>
+<span class="nc" id="L53">            throw new BadRequestException(&quot;Resource '&quot; + resource.getName() + &quot;' is currently marked as unavailable for booking.&quot;);</span>
+        }
+
+<span class="pc bpc" id="L56" title="2 of 4 branches missed.">        if (request.getStartTime() == null || request.getEndTime() == null) {</span>
+<span class="nc" id="L57">            throw new BadRequestException(&quot;Start time and End time must not be null.&quot;);</span>
+        }
+
+<span class="pc bpc" id="L60" title="1 of 2 branches missed.">        if (!request.getStartTime().isBefore(request.getEndTime())) {</span>
+<span class="nc" id="L61">            throw new BadRequestException(&quot;Reservation start time must be before end time.&quot;);</span>
+        }
+
+        // Check for conflicting reservations for this resource
+<span class="fc" id="L65">        List&lt;Reservation&gt; conflicts = reservationRepository.findOverlappingReservations(</span>
+<span class="fc" id="L66">                resource.getId(),</span>
+<span class="fc" id="L67">                request.getStartTime(),</span>
+<span class="fc" id="L68">                request.getEndTime(),</span>
+                ReservationStatus.CANCELLED
+        );
+
+<span class="pc bpc" id="L72" title="1 of 2 branches missed.">        if (!conflicts.isEmpty()) {</span>
+<span class="nc" id="L73">            throw new BadRequestException(&quot;Resource is already reserved during the requested time slot.&quot;);</span>
+        }
+
+        // Calculate price if not provided, or store provided price as decimal
+<span class="fc" id="L77">        BigDecimal finalPrice = request.getTotalPrice();</span>
+<span class="pc bpc" id="L78" title="1 of 2 branches missed.">        if (finalPrice == null) {</span>
+<span class="nc" id="L79">            long minutes = Duration.between(request.getStartTime(), request.getEndTime()).toMinutes();</span>
+<span class="nc" id="L80">            double hours = Math.max(1.0, (double) minutes / 60.0);</span>
+<span class="nc bnc" id="L81" title="All 2 branches missed.">            BigDecimal base = resource.getBasePrice() != null ? resource.getBasePrice() : BigDecimal.ZERO;</span>
+<span class="nc" id="L82">            finalPrice = base.multiply(BigDecimal.valueOf(hours)).setScale(2, RoundingMode.HALF_UP);</span>
+<span class="nc" id="L83">        } else {</span>
+<span class="fc" id="L84">            finalPrice = finalPrice.setScale(2, RoundingMode.HALF_UP);</span>
+        }
+
+<span class="fc" id="L87">        Reservation reservation = Reservation.builder()</span>
+<span class="fc" id="L88">                .resource(resource)</span>
+<span class="fc" id="L89">                .user(user)</span>
+<span class="fc" id="L90">                .startTime(request.getStartTime())</span>
+<span class="fc" id="L91">                .endTime(request.getEndTime())</span>
+<span class="fc" id="L92">                .status(ReservationStatus.PENDING)</span>
+<span class="fc" id="L93">                .totalPrice(finalPrice)</span>
+<span class="fc" id="L94">                .notes(request.getNotes())</span>
+<span class="fc" id="L95">                .build();</span>
+
+<span class="fc" id="L97">        Reservation saved = reservationRepository.save(reservation);</span>
+<span class="fc" id="L98">        log.info(&quot;Created reservation id: {} for user: {} on resource: {}&quot;, saved.getId(), user.getUsername(), resource.getName());</span>
+
+<span class="fc" id="L100">        return mapToResponse(saved);</span>
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ReservationResponse getReservationById(Long id, Long currentUserId, boolean isAdmin) {
+<span class="nc" id="L106">        Reservation reservation = reservationRepository.findById(id)</span>
+<span class="nc" id="L107">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Reservation&quot;, &quot;id&quot;, id));</span>
+
+        // Authorization check: non-admin can only view their own reservation
+<span class="nc bnc" id="L110" title="All 4 branches missed.">        if (!isAdmin &amp;&amp; !reservation.getUser().getId().equals(currentUserId)) {</span>
+<span class="nc" id="L111">            throw new AccessDeniedCustomException(&quot;Access denied: You are only allowed to view your own reservations.&quot;);</span>
+        }
+
+<span class="nc" id="L114">        return mapToResponse(reservation);</span>
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PagedResponse&lt;ReservationResponse&gt; getAllReservations(
+            Long currentUserId,
+            boolean isAdmin,
+            ReservationStatus status,
+            BigDecimal minPrice,
+            BigDecimal maxPrice,
+            Long resourceId,
+            Long filterUserId,
+            LocalDateTime startAfter,
+            LocalDateTime endBefore,
+            Pageable pageable) {
+
+        // Strict RBAC filtering: Regular user can ONLY query their own reservations
+<span class="fc bfc" id="L132" title="All 2 branches covered.">        Long effectiveUserId = isAdmin ? filterUserId : currentUserId;</span>
+
+<span class="fc" id="L134">        Specification&lt;Reservation&gt; spec = ReservationSpecification.filterReservations(</span>
+                effectiveUserId,
+                status,
+                minPrice,
+                maxPrice,
+                resourceId,
+                startAfter,
+                endBefore
+        );
+
+<span class="fc" id="L144">        Page&lt;Reservation&gt; pageResult = reservationRepository.findAll(spec, pageable);</span>
+<span class="fc" id="L145">        Page&lt;ReservationResponse&gt; responsePage = pageResult.map(this::mapToResponse);</span>
+
+<span class="fc" id="L147">        return PagedResponse.from(responsePage);</span>
+    }
+
+    @Override
+    @Transactional
+    public ReservationResponse updateReservationStatus(
+            Long id,
+            ReservationStatusUpdateRequest request,
+            Long currentUserId,
+            boolean isAdmin) {
+
+<span class="fc" id="L158">        Reservation reservation = reservationRepository.findById(id)</span>
+<span class="pc" id="L159">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Reservation&quot;, &quot;id&quot;, id));</span>
+
+<span class="pc bpc" id="L161" title="1 of 2 branches missed.">        if (!isAdmin) {</span>
+            // User can only cancel their own reservation
+<span class="nc bnc" id="L163" title="All 2 branches missed.">            if (!reservation.getUser().getId().equals(currentUserId)) {</span>
+<span class="nc" id="L164">                throw new AccessDeniedCustomException(&quot;Access denied: You cannot modify reservations belonging to other users.&quot;);</span>
+            }
+
+<span class="nc bnc" id="L167" title="All 2 branches missed.">            if (request.getStatus() != ReservationStatus.CANCELLED) {</span>
+<span class="nc" id="L168">                throw new BadRequestException(&quot;Regular users are only permitted to cancel their own reservations.&quot;);</span>
+            }
+        }
+
+<span class="fc" id="L172">        reservation.setStatus(request.getStatus());</span>
+<span class="fc" id="L173">        Reservation updated = reservationRepository.save(reservation);</span>
+<span class="fc" id="L174">        log.info(&quot;Updated reservation id: {} status to: {}&quot;, id, request.getStatus());</span>
+
+<span class="fc" id="L176">        return mapToResponse(updated);</span>
+    }
+
+    @Override
+    @Transactional
+    public void deleteReservation(Long id, Long currentUserId, boolean isAdmin) {
+<span class="nc" id="L182">        Reservation reservation = reservationRepository.findById(id)</span>
+<span class="nc" id="L183">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Reservation&quot;, &quot;id&quot;, id));</span>
+
+<span class="nc bnc" id="L185" title="All 2 branches missed.">        if (!isAdmin) {</span>
+<span class="nc bnc" id="L186" title="All 2 branches missed.">            if (!reservation.getUser().getId().equals(currentUserId)) {</span>
+<span class="nc" id="L187">                throw new AccessDeniedCustomException(&quot;Access denied: You cannot delete reservations belonging to other users.&quot;);</span>
+            }
+            // Cancel user's reservation
+<span class="nc" id="L190">            reservation.setStatus(ReservationStatus.CANCELLED);</span>
+<span class="nc" id="L191">            reservationRepository.save(reservation);</span>
+<span class="nc" id="L192">            log.info(&quot;User {} cancelled reservation id: {}&quot;, currentUserId, id);</span>
+        } else {
+<span class="nc" id="L194">            reservationRepository.delete(reservation);</span>
+<span class="nc" id="L195">            log.info(&quot;Admin deleted reservation id: {}&quot;, id);</span>
+        }
+<span class="nc" id="L197">    }</span>
+
+    public ReservationResponse mapToResponse(Reservation reservation) {
+<span class="fc" id="L200">        return ReservationResponse.builder()</span>
+<span class="fc" id="L201">                .id(reservation.getId())</span>
+<span class="fc" id="L202">                .resourceId(reservation.getResource().getId())</span>
+<span class="fc" id="L203">                .resourceName(reservation.getResource().getName())</span>
+<span class="fc" id="L204">                .resourceType(reservation.getResource().getType())</span>
+<span class="fc" id="L205">                .userId(reservation.getUser().getId())</span>
+<span class="fc" id="L206">                .username(reservation.getUser().getUsername())</span>
+<span class="fc" id="L207">                .userEmail(reservation.getUser().getEmail())</span>
+<span class="fc" id="L208">                .startTime(reservation.getStartTime())</span>
+<span class="fc" id="L209">                .endTime(reservation.getEndTime())</span>
+<span class="fc" id="L210">                .status(reservation.getStatus())</span>
+<span class="fc" id="L211">                .totalPrice(reservation.getTotalPrice())</span>
+<span class="fc" id="L212">                .notes(reservation.getNotes())</span>
+<span class="fc" id="L213">                .createdAt(reservation.getCreatedAt())</span>
+<span class="fc" id="L214">                .updatedAt(reservation.getUpdatedAt())</span>
+<span class="fc" id="L215">                .build();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

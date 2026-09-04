@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AuthController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">ResourceBookingSystem</a> &gt; <a href="index.source.html" class="el_package">com.example.booking.controller</a> &gt; <span class="el_source">AuthController.java</span></div><h1>AuthController.java</h1><pre class="source lang-java linenums">package com.example.booking.controller;
+
+import com.example.booking.dto.request.LoginRequest;
+import com.example.booking.dto.request.RegisterRequest;
+import com.example.booking.dto.response.ApiResponse;
+import com.example.booking.dto.response.AuthResponse;
+import com.example.booking.dto.response.UserProfileResponse;
+import com.example.booking.service.AuthService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequiredArgsConstructor
+@Tag(name = &quot;Authentication&quot;, description = &quot;Endpoints for user registration and JWT login authentication&quot;)
+public class AuthController {
+
+    private final AuthService authService;
+
+    @PostMapping({&quot;/auth/login&quot;, &quot;/api/auth/login&quot;})
+    @Operation(summary = &quot;Login user and generate JWT token&quot;, description = &quot;Authenticates user credentials and returns a Bearer JWT token.&quot;)
+    public ResponseEntity&lt;ApiResponse&lt;AuthResponse&gt;&gt; login(@Valid @RequestBody LoginRequest loginRequest) {
+<span class="fc" id="L29">        AuthResponse authResponse = authService.login(loginRequest);</span>
+<span class="fc" id="L30">        return ResponseEntity.ok(ApiResponse.ok(&quot;Login successful&quot;, authResponse));</span>
+    }
+
+    @PostMapping({&quot;/auth/register&quot;, &quot;/api/auth/register&quot;})
+    @Operation(summary = &quot;Register a new user account&quot;, description = &quot;Creates a new user account with default ROLE_USER or specified role.&quot;)
+    public ResponseEntity&lt;ApiResponse&lt;UserProfileResponse&gt;&gt; register(@Valid @RequestBody RegisterRequest registerRequest) {
+<span class="fc" id="L36">        ApiResponse&lt;UserProfileResponse&gt; response = authService.register(registerRequest);</span>
+<span class="fc" id="L37">        return new ResponseEntity&lt;&gt;(response, HttpStatus.CREATED);</span>
+    }
+
+    @GetMapping({&quot;/auth/me&quot;, &quot;/api/auth/me&quot;})
+    @Operation(summary = &quot;Get current authenticated user profile&quot;, description = &quot;Returns user profile details extracted from active JWT.&quot;)
+    public ResponseEntity&lt;ApiResponse&lt;UserProfileResponse&gt;&gt; getCurrentUser(@AuthenticationPrincipal UserDetails userDetails) {
+<span class="nc" id="L43">        UserProfileResponse profile = authService.getCurrentUserProfile(userDetails.getUsername());</span>
+<span class="nc" id="L44">        return ResponseEntity.ok(ApiResponse.ok(&quot;User profile retrieved&quot;, profile));</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

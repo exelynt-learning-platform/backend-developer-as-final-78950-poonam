@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ResourceController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">ResourceBookingSystem</a> &gt; <a href="index.source.html" class="el_package">com.example.booking.controller</a> &gt; <span class="el_source">ResourceController.java</span></div><h1>ResourceController.java</h1><pre class="source lang-java linenums">package com.example.booking.controller;
+
+import com.example.booking.dto.request.ResourceRequest;
+import com.example.booking.dto.response.ApiResponse;
+import com.example.booking.dto.response.PagedResponse;
+import com.example.booking.dto.response.ResourceResponse;
+import com.example.booking.service.ResourceService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping({&quot;/api/resources&quot;, &quot;/resources&quot;})
+@RequiredArgsConstructor
+@Tag(name = &quot;Resources&quot;, description = &quot;Endpoints for viewing and managing bookable resources&quot;)
+@SecurityRequirement(name = &quot;Bearer Authentication&quot;)
+public class ResourceController {
+
+    private final ResourceService resourceService;
+
+    @GetMapping
+    @Operation(summary = &quot;Get list of resources&quot;, description = &quot;Accessible by USER and ADMIN. Supports search, type filter, availability, pagination, and sorting.&quot;)
+    public ResponseEntity&lt;ApiResponse&lt;PagedResponse&lt;ResourceResponse&gt;&gt;&gt; getAllResources(
+            @Parameter(description = &quot;Search keyword in name, description, or location&quot;)
+            @RequestParam(required = false) String search,
+            @Parameter(description = &quot;Filter by resource type (e.g. ROOM, VEHICLE, EQUIPMENT)&quot;)
+            @RequestParam(required = false) String type,
+            @Parameter(description = &quot;Filter by availability status&quot;)
+            @RequestParam(required = false) Boolean isAvailable,
+            @Parameter(description = &quot;Page index (0-based)&quot;)
+            @RequestParam(defaultValue = &quot;0&quot;) int page,
+            @Parameter(description = &quot;Page size&quot;)
+            @RequestParam(defaultValue = &quot;10&quot;) int size,
+            @Parameter(description = &quot;Sort field&quot;)
+            @RequestParam(defaultValue = &quot;id&quot;) String sortBy,
+            @Parameter(description = &quot;Sort direction (asc/desc)&quot;)
+            @RequestParam(defaultValue = &quot;asc&quot;) String sortDirection
+    ) {
+<span class="pc bpc" id="L51" title="1 of 2 branches missed.">        Sort sort = sortDirection.equalsIgnoreCase(&quot;desc&quot;) ? Sort.by(sortBy).descending() : Sort.by(sortBy).ascending();</span>
+<span class="fc" id="L52">        Pageable pageable = PageRequest.of(page, size, sort);</span>
+
+<span class="fc" id="L54">        PagedResponse&lt;ResourceResponse&gt; response = resourceService.getAllResources(pageable, search, type, isAvailable);</span>
+<span class="fc" id="L55">        return ResponseEntity.ok(ApiResponse.ok(&quot;Resources retrieved successfully&quot;, response));</span>
+    }
+
+    @GetMapping(&quot;/available&quot;)
+    @Operation(summary = &quot;Get all available resources&quot;, description = &quot;Accessible by USER and ADMIN. Returns list of available resources.&quot;)
+    public ResponseEntity&lt;ApiResponse&lt;List&lt;ResourceResponse&gt;&gt;&gt; getAvailableResources() {
+<span class="nc" id="L61">        List&lt;ResourceResponse&gt; resources = resourceService.getAvailableResources();</span>
+<span class="nc" id="L62">        return ResponseEntity.ok(ApiResponse.ok(&quot;Available resources retrieved&quot;, resources));</span>
+    }
+
+    @GetMapping(&quot;/{id}&quot;)
+    @Operation(summary = &quot;Get resource by ID&quot;, description = &quot;Accessible by USER and ADMIN.&quot;)
+    public ResponseEntity&lt;ApiResponse&lt;ResourceResponse&gt;&gt; getResourceById(@PathVariable Long id) {
+<span class="nc" id="L68">        ResourceResponse resource = resourceService.getResourceById(id);</span>
+<span class="nc" id="L69">        return ResponseEntity.ok(ApiResponse.ok(&quot;Resource details retrieved&quot;, resource));</span>
+    }
+
+    @PostMapping
+    @PreAuthorize(&quot;hasRole('ADMIN')&quot;)
+    @Operation(summary = &quot;Create a new resource&quot;, description = &quot;ADMIN role only. Creates a new bookable resource.&quot;)
+    public ResponseEntity&lt;ApiResponse&lt;ResourceResponse&gt;&gt; createResource(@Valid @RequestBody ResourceRequest request) {
+<span class="fc" id="L76">        ResourceResponse created = resourceService.createResource(request);</span>
+<span class="fc" id="L77">        return new ResponseEntity&lt;&gt;(ApiResponse.ok(&quot;Resource created successfully&quot;, created), HttpStatus.CREATED);</span>
+    }
+
+    @PutMapping(&quot;/{id}&quot;)
+    @PreAuthorize(&quot;hasRole('ADMIN')&quot;)
+    @Operation(summary = &quot;Update an existing resource&quot;, description = &quot;ADMIN role only. Updates resource details.&quot;)
+    public ResponseEntity&lt;ApiResponse&lt;ResourceResponse&gt;&gt; updateResource(
+            @PathVariable Long id,
+            @Valid @RequestBody ResourceRequest request
+    ) {
+<span class="fc" id="L87">        ResourceResponse updated = resourceService.updateResource(id, request);</span>
+<span class="fc" id="L88">        return ResponseEntity.ok(ApiResponse.ok(&quot;Resource updated successfully&quot;, updated));</span>
+    }
+
+    @DeleteMapping(&quot;/{id}&quot;)
+    @PreAuthorize(&quot;hasRole('ADMIN')&quot;)
+    @Operation(summary = &quot;Delete a resource&quot;, description = &quot;ADMIN role only. Deletes a resource.&quot;)
+    public ResponseEntity&lt;ApiResponse&lt;Void&gt;&gt; deleteResource(@PathVariable Long id) {
+<span class="fc" id="L95">        resourceService.deleteResource(id);</span>
+<span class="fc" id="L96">        return ResponseEntity.ok(ApiResponse.message(&quot;Resource deleted successfully&quot;));</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

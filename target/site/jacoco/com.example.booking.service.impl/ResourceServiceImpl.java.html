@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ResourceServiceImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">ResourceBookingSystem</a> &gt; <a href="index.source.html" class="el_package">com.example.booking.service.impl</a> &gt; <span class="el_source">ResourceServiceImpl.java</span></div><h1>ResourceServiceImpl.java</h1><pre class="source lang-java linenums">package com.example.booking.service.impl;
+
+import com.example.booking.dto.request.ResourceRequest;
+import com.example.booking.dto.response.PagedResponse;
+import com.example.booking.dto.response.ResourceResponse;
+import com.example.booking.entity.Resource;
+import com.example.booking.exception.ResourceNotFoundException;
+import com.example.booking.repository.ResourceRepository;
+import com.example.booking.service.ResourceService;
+import jakarta.persistence.criteria.Predicate;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
+
+@Service
+@RequiredArgsConstructor
+<span class="fc" id="L26">@Slf4j</span>
+public class ResourceServiceImpl implements ResourceService {
+
+    private final ResourceRepository resourceRepository;
+
+    @Override
+    @Transactional
+    public ResourceResponse createResource(ResourceRequest request) {
+<span class="fc" id="L34">        Resource resource = Resource.builder()</span>
+<span class="fc" id="L35">                .name(request.getName())</span>
+<span class="fc" id="L36">                .type(request.getType())</span>
+<span class="fc" id="L37">                .description(request.getDescription())</span>
+<span class="fc" id="L38">                .location(request.getLocation())</span>
+<span class="fc" id="L39">                .capacity(request.getCapacity())</span>
+<span class="fc" id="L40">                .basePrice(request.getBasePrice())</span>
+<span class="pc bpc" id="L41" title="1 of 2 branches missed.">                .isAvailable(request.getIsAvailable() != null ? request.getIsAvailable() : true)</span>
+<span class="fc" id="L42">                .build();</span>
+
+<span class="fc" id="L44">        Resource saved = resourceRepository.save(resource);</span>
+<span class="fc" id="L45">        return mapToResponse(saved);</span>
+    }
+
+    @Override
+    @Transactional
+    public ResourceResponse updateResource(Long id, ResourceRequest request) {
+<span class="fc" id="L51">        Resource resource = resourceRepository.findById(id)</span>
+<span class="pc" id="L52">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Resource&quot;, &quot;id&quot;, id));</span>
+
+<span class="fc" id="L54">        resource.setName(request.getName());</span>
+<span class="fc" id="L55">        resource.setType(request.getType());</span>
+<span class="fc" id="L56">        resource.setDescription(request.getDescription());</span>
+<span class="fc" id="L57">        resource.setLocation(request.getLocation());</span>
+<span class="fc" id="L58">        resource.setCapacity(request.getCapacity());</span>
+<span class="fc" id="L59">        resource.setBasePrice(request.getBasePrice());</span>
+<span class="pc bpc" id="L60" title="1 of 2 branches missed.">        if (request.getIsAvailable() != null) {</span>
+<span class="fc" id="L61">            resource.setIsAvailable(request.getIsAvailable());</span>
+        }
+
+<span class="fc" id="L64">        Resource updated = resourceRepository.save(resource);</span>
+<span class="fc" id="L65">        return mapToResponse(updated);</span>
+    }
+
+    @Override
+    @Transactional
+    public void deleteResource(Long id) {
+<span class="fc" id="L71">        Resource resource = resourceRepository.findById(id)</span>
+<span class="pc" id="L72">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Resource&quot;, &quot;id&quot;, id));</span>
+
+<span class="fc" id="L74">        resourceRepository.delete(resource);</span>
+<span class="fc" id="L75">    }</span>
+
+    @Override
+    @Transactional(readOnly = true)
+    public ResourceResponse getResourceById(Long id) {
+<span class="nc" id="L80">        Resource resource = resourceRepository.findById(id)</span>
+<span class="nc" id="L81">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Resource&quot;, &quot;id&quot;, id));</span>
+
+<span class="nc" id="L83">        return mapToResponse(resource);</span>
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PagedResponse&lt;ResourceResponse&gt; getAllResources(Pageable pageable, String search, String type, Boolean isAvailable) {
+<span class="fc" id="L89">        Specification&lt;Resource&gt; spec = (root, query, cb) -&gt; {</span>
+<span class="fc" id="L90">            List&lt;Predicate&gt; predicates = new ArrayList&lt;&gt;();</span>
+
+<span class="pc bpc" id="L92" title="1 of 2 branches missed.">            if (StringUtils.hasText(search)) {</span>
+<span class="nc" id="L93">                String pattern = &quot;%&quot; + search.toLowerCase() + &quot;%&quot;;</span>
+<span class="nc" id="L94">                Predicate nameMatch = cb.like(cb.lower(root.get(&quot;name&quot;)), pattern);</span>
+<span class="nc" id="L95">                Predicate descMatch = cb.like(cb.lower(root.get(&quot;description&quot;)), pattern);</span>
+<span class="nc" id="L96">                Predicate locMatch = cb.like(cb.lower(root.get(&quot;location&quot;)), pattern);</span>
+<span class="nc" id="L97">                predicates.add(cb.or(nameMatch, descMatch, locMatch));</span>
+            }
+
+<span class="pc bpc" id="L100" title="1 of 2 branches missed.">            if (StringUtils.hasText(type)) {</span>
+<span class="nc" id="L101">                predicates.add(cb.equal(cb.lower(root.get(&quot;type&quot;)), type.toLowerCase()));</span>
+            }
+
+<span class="pc bpc" id="L104" title="1 of 2 branches missed.">            if (isAvailable != null) {</span>
+<span class="nc" id="L105">                predicates.add(cb.equal(root.get(&quot;isAvailable&quot;), isAvailable));</span>
+            }
+
+<span class="fc" id="L108">            return cb.and(predicates.toArray(new Predicate[0]));</span>
+        };
+
+<span class="fc" id="L111">        Page&lt;Resource&gt; resourcePage = resourceRepository.findAll(spec, pageable);</span>
+<span class="fc" id="L112">        Page&lt;ResourceResponse&gt; responsePage = resourcePage.map(this::mapToResponse);</span>
+
+<span class="fc" id="L114">        return PagedResponse.from(responsePage);</span>
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List&lt;ResourceResponse&gt; getAvailableResources() {
+<span class="nc" id="L120">        return resourceRepository.findByIsAvailableTrue().stream()</span>
+<span class="nc" id="L121">                .map(this::mapToResponse)</span>
+<span class="nc" id="L122">                .collect(Collectors.toList());</span>
+    }
+
+    public ResourceResponse mapToResponse(Resource resource) {
+<span class="fc" id="L126">        return ResourceResponse.builder()</span>
+<span class="fc" id="L127">                .id(resource.getId())</span>
+<span class="fc" id="L128">                .name(resource.getName())</span>
+<span class="fc" id="L129">                .type(resource.getType())</span>
+<span class="fc" id="L130">                .description(resource.getDescription())</span>
+<span class="fc" id="L131">                .location(resource.getLocation())</span>
+<span class="fc" id="L132">                .capacity(resource.getCapacity())</span>
+<span class="fc" id="L133">                .basePrice(resource.getBasePrice())</span>
+<span class="fc" id="L134">                .isAvailable(resource.getIsAvailable())</span>
+<span class="fc" id="L135">                .createdAt(resource.getCreatedAt())</span>
+<span class="fc" id="L136">                .updatedAt(resource.getUpdatedAt())</span>
+<span class="fc" id="L137">                .build();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>
