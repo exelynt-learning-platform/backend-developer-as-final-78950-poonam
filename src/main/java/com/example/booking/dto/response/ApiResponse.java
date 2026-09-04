@@ -27,6 +27,19 @@ public class ApiResponse<T> {
     @Schema(description = "Payload data")
     private T data;
 
+    @Schema(description = "JWT Token if authentication response", example = "eyJhbGciOiJIUzUxMiJ9...")
+    public String getToken() {
+        if (data instanceof AuthResponse) {
+            return ((AuthResponse) data).getToken();
+        }
+        return null;
+    }
+
+    @Schema(description = "Access token alias", example = "eyJhbGciOiJIUzUxMiJ9...")
+    public String getAccessToken() {
+        return getToken();
+    }
+
     @Schema(description = "Timestamp of response", example = "2026-08-29T09:30:00")
     @Builder.Default
     private LocalDateTime timestamp = LocalDateTime.now();

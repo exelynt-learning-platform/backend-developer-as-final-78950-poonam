@@ -14,11 +14,20 @@ import lombok.NoArgsConstructor;
 @Schema(description = "Login credentials request")
 public class LoginRequest {
 
-    @NotBlank(message = "Username or email is required")
-    @Schema(description = "Username or Email address", example = "admin")
+    @Schema(description = "Username", example = "admin")
     private String username;
+
+    @Schema(description = "Email address (alternative to username)", example = "admin@example.com")
+    private String email;
 
     @NotBlank(message = "Password is required")
     @Schema(description = "Password", example = "admin123")
     private String password;
+
+    public String getUsername() {
+        if (username != null && !username.isBlank()) {
+            return username;
+        }
+        return email;
+    }
 }
