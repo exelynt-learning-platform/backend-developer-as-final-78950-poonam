@@ -1,6 +1,6 @@
 # 🏢 ReserveSpace - Enterprise Resource Booking Platform (Poonam Memane)
 
-<!-- Verified: 01-Sep-2026 10:22 AM IST -->
+<!-- Assignment Submission: 04-Sep-2026 12:05 PM IST (Branch 2867) -->
 
 A commercial-grade, real-time RESTful platform and interactive portal for **Corporate Resource & Meeting Space Booking**, engineered with **Java 17+**, **Spring Boot 3**, **Spring Security 6**, **Stateless JWT Authentication**, and **MySQL with JPA / Hibernate**.
 
